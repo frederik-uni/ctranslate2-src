@@ -101,16 +101,16 @@ pub fn get_submodules(
     Ok(submodules)
 }
 
-pub fn get_submodules_helper(version: &str) -> Vec<PathBuf> {
-    let p = format!("CTranslate2-{version}");
-    let f = Path::new(&p).join("submodules_downloaded");
+pub fn get_submodules_helper(path: &Path, version: &str) -> Vec<PathBuf> {
+    let p = path.join(format!("CTranslate2-{version}"));
+    let f = p.join("submodules_downloaded");
     if f.exists() {
         return vec![];
     }
     let submodules = get_submodules("OpenNMT", "CTranslate2", &format!("v{version}")).unwrap();
     let mut modules = vec![];
     for (path, sha, url) in submodules {
-        let submodule_path = Path::new(&p).join(path);
+        let submodule_path = p.join(path);
         modules.push(submodule_path.clone());
         let status = Command::new("git")
             .args([

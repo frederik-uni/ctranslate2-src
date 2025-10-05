@@ -336,11 +336,12 @@ fn main() {
             format!("https://github.com/OpenNMT/CTranslate2/archive/refs/tags/v{release}.tar.gz");
 
         let p = format!("CTranslate2-{release}");
-        let p = Path::new(&p);
+        let p = get_dir().join(Path::new(&p));
+        let d = &get_dir();
         if !p.exists() {
-            download_helper(&url, Path::new("./"), false).unwrap();
+            download_helper(&url, d, false).unwrap();
         }
-        for module in submodules::get_submodules_helper(&release) {
+        for module in submodules::get_submodules_helper(d, &release) {
             if !module.exists()
                 || read_dir(module)
                     .unwrap()
@@ -360,7 +361,7 @@ fn main() {
                 .unwrap();
         }
         build_native(
-            p,
+            &p,
             os,
             cuda,
             cudnn,
