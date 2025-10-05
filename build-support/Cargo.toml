@@ -1,6 +1,6 @@
 [package]
 name = "ctranslate2-src-build-support"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Build support for ctranslate2-src"
 license = "MIT"
