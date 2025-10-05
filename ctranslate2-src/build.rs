@@ -15,6 +15,7 @@ use build_support::file_changes::watch_dir_recursively;
 use build_support::link::link;
 
 use build_support::native::cuda_root;
+use build_support::windows_crt_patch::patch_cmake_runtime_flags;
 use build_support::{Os, export, link_libraries, native::build_native};
 use build_support::{link_dynamic_libraries, submodules};
 
@@ -274,6 +275,7 @@ fn load_features() -> (
 }
 
 fn main() {
+    add_search_paths("LIBRARY_PATH");
     let (
         os,
         aarch64,
@@ -308,7 +310,6 @@ fn main() {
     let lib_path = if let Some(found) = found {
         found
     } else {
-        add_search_paths("LIBRARY_PATH");
         add_search_paths("CMAKE_LIBRARY_PATH");
         link(
             os,
@@ -346,6 +347,10 @@ fn main() {
         }
         if !p.exists() {
             panic!("CTranslate2-{release} not found locally")
+        }
+        if os == Os::Win {
+            patch_cmake_runtime_flags(p.join("CMakeLists.txt"), cfg!(feature = "crt-dynamic"))
+                .unwrap();
         }
         build_native(
             p,

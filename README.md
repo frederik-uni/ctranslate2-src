@@ -2,8 +2,9 @@
 - CTRANSLATE2_RELEASE = [default = "4.6.0"]
 
 # features
-- vendor
-- shared
+- `vendor`: Use prebuilt binaries
+- `shared`: Build with ctranslate2 as shared library
+- `crt-dynamic`: crt is statically linked on Windows-static builds. to link crt dynamically, use `crt-dynamic`
 
 # native features
 These features only do something if `vendor` is not used

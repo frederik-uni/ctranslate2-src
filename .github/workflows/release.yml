@@ -53,8 +53,6 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           export TZ=Etc/UTC
           apt install cmake build-essential gcc dirmngr ca-certificates software-properties-common apt-transport-https dkms curl -y
-          #curl -fSsL https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/3bf863cc.pub | sudo gpg --dearmor | sudo tee /usr/share/keyrings/nvidia-drivers.gpg > /dev/null 2>&1
-          #echo 'deb [signed-by=/usr/share/keyrings/nvidia-drivers.gpg] https://developer.download.nvidia.com/compute/cuda/repos/debian11/x86_64/ /' | sudo tee /etc/apt/sources.list.d/nvidia-drivers.list
           wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.1-1_all.deb
           sudo dpkg -i cuda-keyring_1.1-1_all.deb
           apt update
@@ -75,10 +73,10 @@ jobs:
           apt-get install -y intel-mkl-64bit-2020.4-912
           echo "LD_LIBRARY_PATH=/opt/intel/lib/intel64:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           # hack
-          #file=CTranslate2/include/ctranslate2/devices.h
-          #if ! grep -q '#include <stdint.h>' "$file"; then
-          #  sed -i '0,/^#pragma once/ s|^#pragma once|#pragma once\n#include <stdint.h>|' "$file"
-          #fi
+          # file=CTranslate2/include/ctranslate2/devices.h
+          # if ! grep -q '#include <stdint.h>' "$file"; then
+          #   sed -i '0,/^#pragma once/ s|^#pragma once|#pragma once\n#include <stdint.h>|' "$file"
+          # fi
       - name: Install dependencies (Linux arm64)
         if: matrix.name == 'linux-arm64'
         run: |
@@ -93,9 +91,7 @@ jobs:
           echo "OPENBLAS_DIR=/opt/OpenBLAS" >> $GITHUB_ENV
           echo "OPENBLAS_STATIC=1" >> $GITHUB_ENV
           echo "CMAKE_PREFIX_PATH=/opt/OpenBLAS" >> $GITHUB_ENV
-      # - name: Install dependencies (MacOS ARM64)
-      #   if: matrix.name == 'macos-arm64'
-      #   run: |
+
       - name: Install dependencies (MacOS x86_64)
         if: matrix.name == 'macos-x86_64'
         run: |
@@ -243,4 +239,34 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: shared-${{ matrix.name }}
+          path: target/release/vendored.tar.gz
+
+      - name: Clean
+        if: matrix.name == 'windows-x86_64'
+        run: rm -rf target/release/
+
+      - name: Build Shared
+        if: matrix.name == 'windows-x86_64'
+        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor,shared,crt-dynamic"
+
+      - name: Upload vendored artifact
+        if: matrix.name == 'windows-x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-crt-dynamic-${{ matrix.name }}
+          path: target/release/vendored.tar.gz
+
+      - name: Clean
+        if: matrix.name == 'windows-x86_64'
+        run: rm -rf target/release/
+
+      - name: Build Static
+        if: matrix.name == 'windows-x86_64'
+        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor,crt-dynamic"
+
+      - name: Upload vendored artifact
+        if: matrix.name == 'windows-x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-crt-dynamic-${{ matrix.name }}
           path: target/release/vendored.tar.gz

@@ -14,6 +14,7 @@ pub mod file_changes;
 pub mod link;
 pub mod native;
 pub mod submodules;
+pub mod windows_crt_patch;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Os {
