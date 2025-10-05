@@ -1,0 +1,30 @@
+[package]
+name = "ctranslate2-src"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[build-dependencies]
+build-support.workspace = true
+cxx-build = "1.0"
+
+[features]
+cuda = []
+cudnn = []
+cuda-dynamic-loading = []
+mkl = []
+openblas = []
+ruy = []
+accelerate = []
+tensor-parallel = []
+dnnl = []
+openmp-runtime-comp = []
+openmp-runtime-intel = []
+msse4_1 = []
+os-defaults = []
+flash-attention = []
+vendor = []
+shared = []
+cuda-small-binary = []
+export-vendor = []

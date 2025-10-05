@@ -1,0 +1,357 @@
+// build.rs
+//
+// Copyright (c) 2023-2025 Junpei Kawamoto
+//
+// This software is released under the MIT License.
+//
+// http://opensource.org/licenses/mit-license.php
+
+use std::path::PathBuf;
+use std::{env, path::Path};
+
+use build_support::download::download_helper;
+use build_support::file_changes::watch_dir_recursively;
+use build_support::link::link;
+
+use build_support::native::cuda_root;
+use build_support::{Os, export, link_libraries, native::build_native};
+
+#[cfg(not(target_os = "windows"))]
+const PATH_SEPARATOR: char = ':';
+
+#[cfg(target_os = "windows")]
+const PATH_SEPARATOR: char = ';';
+
+fn add_search_paths(key: &str) {
+    println!("cargo:rerun-if-env-changed={}", key);
+    if let Ok(library_path) = env::var(key) {
+        library_path
+            .split(PATH_SEPARATOR)
+            .filter(|v| !v.is_empty())
+            .for_each(|v| {
+                println!("cargo:rustc-link-search={}", v);
+            });
+    }
+}
+
+fn get_download_link(os: Os, version: &str, aarch64: bool, shared: bool) -> Option<String> {
+    Some(format!(
+        "https://github.com/frederik-uni/ctranslate2-rs/releases/download/ctranslate2-{version}/ctranslate2-{}-{}-{}.tar.gz",
+        if shared { "shared" } else { "static" },
+        match os {
+            Os::Win => "windows",
+            Os::Mac => "macos",
+            Os::Linux => "linux",
+            Os::Unknown => return None,
+        },
+        match aarch64 {
+            true => "arm64",
+            false => "x86_64",
+        }
+    ))
+}
+
+fn get_dir() -> PathBuf {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    out_dir
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .to_path_buf()
+}
+
+fn link_vendor(os: Os, aarch64: bool) {
+    match (os, aarch64) {
+        (Os::Win, false) => {
+            link(os, true, true, true, false, true, false, false, true, None);
+        }
+        (Os::Mac, true) => {
+            link(
+                os, false, false, false, false, false, true, false, false, None,
+            );
+        }
+        (Os::Linux, true) => {
+            link(
+                os, false, false, false, true, false, false, true, false, None,
+            );
+        }
+        (Os::Mac, false) => {
+            link(
+                os, false, false, false, false, true, false, false, true, None,
+            );
+        }
+        (Os::Linux, false) => {
+            link(os, true, true, true, false, false, false, true, false, None);
+        }
+        _ => panic!("Unsupported platform"),
+    }
+}
+
+fn load_vendor(os: Os, aarch64: bool, shared: bool) -> Option<PathBuf> {
+    let main_dir = get_dir();
+    let out_dir = main_dir.join("ctranslate2-vendor");
+
+    let dyn_dir = out_dir.join("dyn");
+    let url = get_download_link(os, "4.6.0", aarch64, shared)?;
+    download_helper(&url, &out_dir, true)?;
+
+    watch_dir_recursively(&dyn_dir);
+
+    let files = dyn_dir
+        .read_dir()
+        .map(|v| v.into_iter().filter_map(|v| v.ok()).collect::<Vec<_>>())
+        .unwrap_or_default()
+        .iter()
+        .map(|v| v.path())
+        .filter(|p| {
+            let ext = p
+                .extension()
+                .and_then(|v| v.to_str())
+                .unwrap_or_default()
+                .to_lowercase();
+            ext == "dll" || ext == "so" || ext == "dylib"
+        })
+        .collect::<Vec<_>>();
+    println!(
+        "cargo:warning=Required dylibs are in: {}",
+        main_dir.display()
+    );
+    for file in files {
+        println!("cargo:warning=- {}", file.display());
+        let tar = main_dir.join(file.file_name().unwrap_or_default());
+        std::fs::copy(&file, &tar).unwrap();
+        // Github actions has sometimes some issues with finding files. I hope that fixes it
+        println!("cargo:rerun-if-changed={}", tar.display());
+    }
+
+    println!("cargo:rustc-link-search=native={}", dyn_dir.display());
+    Some(out_dir.join("lib"))
+}
+
+fn load_features() -> (
+    Os,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+    bool,
+) {
+    let aarch64 = cfg!(target_arch = "aarch64");
+    let os = if cfg!(target_os = "windows") {
+        Os::Win
+    } else if cfg!(target_os = "macos") {
+        Os::Mac
+    } else if cfg!(target_os = "linux") {
+        Os::Linux
+    } else {
+        Os::Unknown
+    };
+    let mut cuda = cfg!(feature = "cuda");
+    let mut cudnn = cfg!(feature = "cudnn");
+    let mut cuda_dynamic_loading = cfg!(feature = "cuda-dynamic-loading");
+    let mut mkl = cfg!(feature = "mkl");
+    let mut openblas = cfg!(feature = "openblas");
+    let mut ruy = cfg!(feature = "ruy");
+    let mut accelarate = cfg!(feature = "accelerate");
+    let mut tensor_parallel = cfg!(feature = "tensor-parallel");
+    let mut dnnl = cfg!(feature = "dnnl");
+    let mut openmp_comp = cfg!(feature = "openmp-runtime-comp");
+    let mut openmp_intel = cfg!(feature = "openmp-runtime-intel");
+    let mut msse4_1 = cfg!(feature = "msse4_1");
+    if !openmp_intel && !openmp_comp && dnnl {
+        if os == Os::Linux {
+            openmp_comp = true;
+        }
+    }
+    let flash_attention = cfg!(feature = "flash-attention");
+    if cfg!(feature = "os-defaults") {
+        match (os, aarch64) {
+            (Os::Win, false) => {
+                openmp_intel = false;
+                openmp_comp = false;
+                dnnl = true;
+                cuda = true;
+                cudnn = true;
+                cuda_dynamic_loading = true;
+                mkl = true;
+                ruy = false;
+                accelarate = false;
+                openblas = false;
+            }
+            (Os::Mac, true) => {
+                openmp_intel = false;
+                openmp_comp = false;
+                dnnl = false;
+                mkl = false;
+                cuda = false;
+                cudnn = false;
+                cuda_dynamic_loading = false;
+                ruy = true;
+                accelarate = true;
+                openblas = false;
+            }
+            (Os::Mac, false) => {
+                openmp_intel = true;
+                openmp_comp = false;
+                dnnl = true;
+                mkl = true;
+                cuda = false;
+                cudnn = false;
+                cuda_dynamic_loading = false;
+                ruy = false;
+                accelarate = false;
+                openblas = false;
+            }
+            (Os::Linux, true) => {
+                openmp_intel = false;
+                openmp_comp = true;
+                dnnl = false;
+                mkl = false;
+                cuda = false;
+                cudnn = false;
+                cuda_dynamic_loading = false;
+                ruy = true;
+                accelarate = false;
+                openblas = true;
+            }
+            (Os::Linux, false) => {
+                openmp_intel = false;
+                openmp_comp = true;
+                dnnl = true;
+                mkl = true;
+                cuda = true;
+                cudnn = true;
+                cuda_dynamic_loading = true;
+                ruy = false;
+                accelarate = false;
+                openblas = false;
+
+                tensor_parallel = true;
+                msse4_1 = true;
+            }
+            _ => {}
+        }
+    }
+    (
+        os,
+        aarch64,
+        cuda,
+        cudnn,
+        cuda_dynamic_loading,
+        mkl,
+        openblas,
+        ruy,
+        accelarate,
+        tensor_parallel,
+        dnnl,
+        openmp_comp,
+        openmp_intel,
+        msse4_1,
+        flash_attention,
+        cfg!(feature = "cuda-small-binary"),
+        cfg!(feature = "shared"),
+    )
+}
+
+fn main() {
+    let (
+        os,
+        aarch64,
+        cuda,
+        cudnn,
+        cuda_dynamic_loading,
+        mkl,
+        openblas,
+        ruy,
+        accelarate,
+        tensor_parallel,
+        dnnl,
+        openmp_comp,
+        openmp_intel,
+        msse4_1,
+        flash_attention,
+        cuda_small_binary,
+        shared,
+    ) = load_features();
+
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=src/sys");
+    println!("cargo:rerun-if-changed=include");
+    println!("cargo:rerun-if-changed=CTranslate2");
+
+    let mut found = None;
+
+    if cfg!(feature = "vendor") {
+        link_vendor(os, aarch64);
+        found = load_vendor(os, aarch64, shared);
+    }
+    let lib_path = if let Some(found) = found {
+        found
+    } else {
+        add_search_paths("LIBRARY_PATH");
+        add_search_paths("CMAKE_LIBRARY_PATH");
+        link(
+            os,
+            cuda,
+            cudnn,
+            cuda_dynamic_loading,
+            openblas,
+            dnnl,
+            accelarate,
+            openmp_comp,
+            openmp_intel,
+            Some(cuda_root()).expect("CUDA_TOOLKIT_ROOT_DIR is not specified"),
+        );
+        let release = std::env::var("CTRANSLATE2_RELEASE").unwrap_or_else(|_| "4.6.0".to_owned());
+        let url =
+            format!("https://github.com/OpenNMT/CTranslate2/archive/refs/tags/v{release}.tar.gz");
+
+        let p = format!("CTranslate2-{release}");
+        let p = Path::new(&p);
+        if !p.exists() {
+            download_helper(&url, Path::new("./"), false).unwrap();
+        }
+        if !p.exists() {
+            panic!("CTranslate2-{release} not found locally")
+        }
+        build_native(
+            p,
+            os,
+            cuda,
+            cudnn,
+            cuda_dynamic_loading,
+            aarch64,
+            mkl,
+            openblas,
+            ruy,
+            accelarate,
+            tensor_parallel,
+            msse4_1,
+            dnnl,
+            openmp_comp,
+            openmp_intel,
+            flash_attention,
+            cuda_small_binary,
+            shared,
+        )
+    };
+
+    let modules = link_libraries(&lib_path);
+    if cfg!(feature = "export-vendor") {
+        export(&lib_path, &modules);
+    }
+}
