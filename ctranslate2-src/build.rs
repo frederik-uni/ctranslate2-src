@@ -37,10 +37,17 @@ fn add_search_paths(key: &str) {
     }
 }
 
-fn get_download_link(os: Os, version: &str, aarch64: bool, shared: bool) -> Option<String> {
+fn get_download_link(
+    os: Os,
+    version: &str,
+    aarch64: bool,
+    shared: bool,
+    crt_dyn: bool,
+) -> Option<String> {
     Some(format!(
-        "https://github.com/frederik-uni/ctranslate2-rs/releases/download/ctranslate2-{version}/ctranslate2-{}-{}-{}.tar.gz",
+        "https://github.com/frederik-uni/ctranslate2-src/releases/download/v{version}/ctranslate2-{}{}-{}-{}.tar.gz",
         if shared { "shared" } else { "static" },
+        if crt_dyn && os == Os::Win { "-crt" } else { "" },
         match os {
             Os::Win => "windows",
             Os::Mac => "macos",
@@ -102,7 +109,7 @@ fn load_vendor(os: Os, aarch64: bool, shared: bool) -> Option<PathBuf> {
     let out_dir = main_dir.join("ctranslate2-vendor");
 
     let dyn_dir = out_dir.join("dyn");
-    let url = get_download_link(os, "4.6.0", aarch64, shared)?;
+    let url = get_download_link(os, "4.6.0", aarch64, shared, cfg!(feature = "crt-dynamic"))?;
     download_helper(&url, &out_dir, true)?;
 
     watch_dir_recursively(&dyn_dir);
