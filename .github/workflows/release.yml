@@ -230,6 +230,7 @@ jobs:
           path: target/release/vendored.tar.gz
 
       - name: Clean
+        shell: bash
         run: rm -rf target/release/
 
       - name: Build Shared
@@ -243,21 +244,7 @@ jobs:
 
       - name: Clean
         if: matrix.name == 'windows-x86_64'
-        run: rm -rf target/release/
-
-      - name: Build Shared
-        if: matrix.name == 'windows-x86_64'
-        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor,shared,crt-dynamic"
-
-      - name: Upload vendored artifact
-        if: matrix.name == 'windows-x86_64'
-        uses: actions/upload-artifact@v4
-        with:
-          name: shared-crt-dynamic-${{ matrix.name }}
-          path: target/release/vendored.tar.gz
-
-      - name: Clean
-        if: matrix.name == 'windows-x86_64'
+        shell: bash
         run: rm -rf target/release/
 
       - name: Build Static
