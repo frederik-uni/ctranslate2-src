@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "Compiles CTranslate2 from source or uses pre-built binaries"
 license = "MIT"
-
+exclude = ["CTranslate2-*/**"]
 [dependencies]
 
 [build-dependencies]
