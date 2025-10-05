@@ -13,8 +13,9 @@ pub fn link(
     openmp_comp: bool,
     openmp_intel: bool,
     cuda_root: Option<PathBuf>,
+    shared: bool,
 ) {
-    if cuda {
+    if cuda && !shared {
         if let Some(cuda) = cuda_root {
             println!("cargo:rustc-link-search={}", cuda.join("lib").display());
             println!("cargo:rustc-link-search={}", cuda.join("lib64").display());
@@ -37,18 +38,18 @@ pub fn link(
         }
     }
 
-    if openblas {
+    if openblas && !shared {
         println!("cargo:rustc-link-lib=static=openblas");
     }
     if accelarate {
         println!("cargo:rustc-link-lib=framework=Accelerate");
     }
     if dnnl {
-        build_dnnl(os != Os::Mac);
+        build_dnnl(!shared);
     }
-    if openmp_comp {
+    if openmp_comp && !shared {
         println!("cargo:rustc-link-lib=gomp");
-    } else if openmp_intel {
+    } else if openmp_intel && !shared {
         if os == Os::Win {
             println!("cargo:rustc-link-lib=dylib=libiomp5md");
         } else {

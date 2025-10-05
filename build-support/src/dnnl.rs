@@ -4,7 +4,7 @@ use cmake::Config;
 
 use crate::download;
 
-pub fn build_dnnl(check_version: bool) {
+pub fn build_dnnl(link: bool) {
     let out_dir = if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
         PathBuf::from(dir)
     } else {
@@ -27,11 +27,9 @@ pub fn build_dnnl(check_version: bool) {
         }
     }
     let mut cmake = Config::new(source_dir);
-    if check_version {
-        cmake.define("CMAKE_POLICY_VERSION_MINIMUM", "3.5");
-    }
 
     let dst = cmake
+        .define("CMAKE_POLICY_VERSION_MINIMUM", "3.5")
         .define("ONEDNN_LIBRARY_TYPE", "STATIC")
         .define("ONEDNN_BUILD_EXAMPLES", "OFF")
         .define("ONEDNN_BUILD_TESTS", "OFF")
@@ -40,6 +38,8 @@ pub fn build_dnnl(check_version: bool) {
         .define("ONEDNN_BUILD_GRAPH", "OFF")
         .build();
     println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-lib=static=dnnl");
+    if link {
+        println!("cargo:rustc-link-lib=static=dnnl");
+    }
     println!("cargo:include={}/include", dst.display());
 }

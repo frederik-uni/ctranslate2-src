@@ -65,28 +65,32 @@ fn get_dir() -> PathBuf {
         .to_path_buf()
 }
 
-fn link_vendor(os: Os, aarch64: bool) {
+fn link_vendor(os: Os, aarch64: bool, shared: bool) {
     match (os, aarch64) {
         (Os::Win, false) => {
-            link(os, true, true, true, false, true, false, false, true, None);
+            link(
+                os, true, true, true, false, true, false, false, true, None, shared,
+            );
         }
         (Os::Mac, true) => {
             link(
-                os, false, false, false, false, false, true, false, false, None,
+                os, false, false, false, false, false, true, false, false, None, shared,
             );
         }
         (Os::Linux, true) => {
             link(
-                os, false, false, false, true, false, false, true, false, None,
+                os, false, false, false, true, false, false, true, false, None, shared,
             );
         }
         (Os::Mac, false) => {
             link(
-                os, false, false, false, false, true, false, false, true, None,
+                os, false, false, false, false, true, false, false, true, None, shared,
             );
         }
         (Os::Linux, false) => {
-            link(os, true, true, true, false, false, false, true, false, None);
+            link(
+                os, true, true, true, false, false, false, true, false, None, shared,
+            );
         }
         _ => panic!("Unsupported platform"),
     }
@@ -298,7 +302,7 @@ fn main() {
     let mut found = None;
 
     if cfg!(feature = "vendor") {
-        link_vendor(os, aarch64);
+        link_vendor(os, aarch64, shared);
         found = load_vendor(os, aarch64, shared);
     }
     let lib_path = if let Some(found) = found {
@@ -317,6 +321,7 @@ fn main() {
             openmp_comp,
             openmp_intel,
             Some(cuda_root()).expect("CUDA_TOOLKIT_ROOT_DIR is not specified"),
+            shared,
         );
         let release = std::env::var("CTRANSLATE2_RELEASE").unwrap_or_else(|_| "4.6.0".to_owned());
         let url =

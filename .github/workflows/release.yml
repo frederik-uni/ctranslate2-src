@@ -103,6 +103,7 @@ jobs:
           wget -q $ONEAPI_INSTALLER_URL
           hdiutil attach -noverify -noautofsck $(basename $ONEAPI_INSTALLER_URL)
           sudo /Volumes/$(basename $ONEAPI_INSTALLER_URL .dmg)/bootstrapper.app/Contents/MacOS/bootstrapper --silent --eula accept --components intel.oneapi.mac.mkl.devel
+          export LIBRARY_PATH=/opt/intel/oneapi/compiler/2023.2.0/mac/compiler/lib:$LIBRARY_PATH
 
       # - name: Patch CMakeLists.txt runtime flags
       #   if: matrix.name == 'windows-x86_64'
@@ -236,7 +237,7 @@ jobs:
         run: rm -rf target/release/
 
       - name: Build Shared
-        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor"
+        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor,shared"
 
       - name: Upload vendored artifact
         uses: actions/upload-artifact@v4
