@@ -115,6 +115,7 @@ pub fn get_submodules_helper(version: &str) -> Vec<PathBuf> {
         let status = Command::new("git")
             .args([
                 "clone",
+                "--recurse-submodules",
                 "--no-checkout",
                 &url,
                 submodule_path.to_str().unwrap(),
@@ -128,6 +129,12 @@ pub fn get_submodules_helper(version: &str) -> Vec<PathBuf> {
             .args(["checkout", &sha])
             .status()
             .expect("git checkout failed");
+        assert!(status.success());
+        let status = Command::new("git")
+            .current_dir(&submodule_path)
+            .args(["submodule", "update", "--init", "--recursive"])
+            .status()
+            .expect("git submodule update failed");
         assert!(status.success());
     }
     File::create(f).unwrap();
