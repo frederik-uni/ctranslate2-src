@@ -181,14 +181,6 @@ jobs:
           Get-ChildItem -Path "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/" -Recurse |
             ForEach-Object { $_.FullName }
 
-      - name: Build
-        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor"
-
-      - name: Upload vendored artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: static-${{ matrix.name }}
-          path: target/release/vendored.tar.gz
       - name: Upload bundle(MacOS)
         if: matrix.name == 'macos-x86_64'
         uses: actions/upload-artifact@v4
@@ -230,3 +222,24 @@ jobs:
             C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/lib/x64/cudart_static.lib
             C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/lib/x64/cudnn.lib
             C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.9/bin/cudnn64_9.dll
+
+      - name: Build Static
+        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor"
+
+      - name: Upload vendored artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-${{ matrix.name }}
+          path: target/release/vendored.tar.gz
+
+      - name: Clean
+        run: rm -rf target/release/
+
+      - name: Build Shared
+        run: cargo build --release --no-default-features -F "os-defaults,cuda-small-binary,export-vendor"
+
+      - name: Upload vendored artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-${{ matrix.name }}
+          path: target/release/vendored.tar.gz

@@ -4,7 +4,7 @@ use cmake::Config;
 
 use crate::download;
 
-pub fn build_dnnl() {
+pub fn build_dnnl(check_version: bool) {
     let out_dir = if let Ok(dir) = env::var("CARGO_TARGET_DIR") {
         PathBuf::from(dir)
     } else {
@@ -26,9 +26,12 @@ pub fn build_dnnl() {
             panic!("Failed to download oneDNN");
         }
     }
+    let mut cmake = Config::new(source_dir);
+    if check_version {
+        cmake.define("CMAKE_POLICY_VERSION_MINIMUM", "3.5");
+    }
 
-    let dst = Config::new(source_dir)
-        .define("CMAKE_POLICY_VERSION_MINIMUM", "3.5")
+    let dst = cmake
         .define("ONEDNN_LIBRARY_TYPE", "STATIC")
         .define("ONEDNN_BUILD_EXAMPLES", "OFF")
         .define("ONEDNN_BUILD_TESTS", "OFF")

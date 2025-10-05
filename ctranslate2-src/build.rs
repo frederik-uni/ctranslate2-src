@@ -15,8 +15,8 @@ use build_support::file_changes::watch_dir_recursively;
 use build_support::link::link;
 
 use build_support::native::cuda_root;
-use build_support::submodules;
 use build_support::{Os, export, link_libraries, native::build_native};
+use build_support::{link_dynamic_libraries, submodules};
 
 #[cfg(not(target_os = "windows"))]
 const PATH_SEPARATOR: char = ':';
@@ -365,7 +365,8 @@ fn main() {
     };
 
     let modules = link_libraries(&lib_path);
+    let modules2 = link_dynamic_libraries(&lib_path);
     if cfg!(feature = "export-vendor") {
-        export(&lib_path, &modules);
+        export(&lib_path, &modules, &modules2);
     }
 }

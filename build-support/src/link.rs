@@ -44,7 +44,7 @@ pub fn link(
         println!("cargo:rustc-link-lib=framework=Accelerate");
     }
     if dnnl {
-        build_dnnl();
+        build_dnnl(os != Os::Mac);
     }
     if openmp_comp {
         println!("cargo:rustc-link-lib=gomp");
