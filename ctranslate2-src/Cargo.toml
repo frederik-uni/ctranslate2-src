@@ -1,6 +1,6 @@
 [package]
 name = "ctranslate2-src"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Compiles CTranslate2 from source or uses pre-built binaries"
 license = "MIT"

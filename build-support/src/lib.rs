@@ -11,7 +11,6 @@ use walkdir::WalkDir;
 pub mod dnnl;
 pub mod download;
 pub mod file_changes;
-pub mod link;
 pub mod native;
 pub mod submodules;
 pub mod windows_crt_patch;

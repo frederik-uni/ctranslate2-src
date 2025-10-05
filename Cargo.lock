@@ -73,7 +73,7 @@ dependencies = [
 
 [[package]]
 name = "ctranslate2-src"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ctranslate2-src-build-support",
  "cxx-build",
