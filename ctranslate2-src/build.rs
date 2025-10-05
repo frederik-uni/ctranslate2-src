@@ -6,6 +6,7 @@
 //
 // http://opensource.org/licenses/mit-license.php
 
+use std::fs::read_dir;
 use std::path::PathBuf;
 use std::{env, path::Path};
 
@@ -326,7 +327,18 @@ fn main() {
         if !p.exists() {
             download_helper(&url, Path::new("./"), false).unwrap();
         }
-        submodules::get_submodules_helper(&release);
+        for module in submodules::get_submodules_helper(&release) {
+            if !module.exists()
+                || read_dir(module)
+                    .unwrap()
+                    .into_iter()
+                    .filter_map(|v| v.ok())
+                    .count()
+                    < 2
+            {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+            }
+        }
         if !p.exists() {
             panic!("CTranslate2-{release} not found locally")
         }

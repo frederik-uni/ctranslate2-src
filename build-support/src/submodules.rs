@@ -1,9 +1,9 @@
 use base64::Engine;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs::File;
 use std::io::BufReader;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Debug, Deserialize)]
@@ -101,15 +101,17 @@ pub fn get_submodules(
     Ok(submodules)
 }
 
-pub fn get_submodules_helper(version: &str) {
+pub fn get_submodules_helper(version: &str) -> Vec<PathBuf> {
     let p = format!("CTranslate2-{version}");
     let f = Path::new(&p).join("submodules_downloaded");
     if f.exists() {
-        return;
+        return vec![];
     }
     let submodules = get_submodules("OpenNMT", "CTranslate2", &format!("v{version}")).unwrap();
+    let mut modules = vec![];
     for (path, sha, url) in submodules {
         let submodule_path = Path::new(&p).join(path);
+        modules.push(submodule_path.clone());
         let status = Command::new("git")
             .args([
                 "clone",
@@ -129,4 +131,5 @@ pub fn get_submodules_helper(version: &str) {
         assert!(status.success());
     }
     File::create(f).unwrap();
+    modules
 }

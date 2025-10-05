@@ -25,17 +25,18 @@ pub fn link(
         if cudnn {
             println!("cargo:rustc-link-lib=cudnn");
         }
-    }
-    if !cuda_dynamic_loading {
-        if os == Os::Win {
-            println!("cargo:rustc-link-lib=static=cublas");
-            println!("cargo:rustc-link-lib=static=cublasLt");
-        } else {
-            println!("cargo:rustc-link-lib=static=cublas_static");
-            println!("cargo:rustc-link-lib=static=cublasLt_static");
-            println!("cargo:rustc-link-lib=static=culibos");
+        if !cuda_dynamic_loading {
+            if os == Os::Win {
+                println!("cargo:rustc-link-lib=static=cublas");
+                println!("cargo:rustc-link-lib=static=cublasLt");
+            } else {
+                println!("cargo:rustc-link-lib=static=cublas_static");
+                println!("cargo:rustc-link-lib=static=cublasLt_static");
+                println!("cargo:rustc-link-lib=static=culibos");
+            }
         }
     }
+
     if openblas {
         println!("cargo:rustc-link-lib=static=openblas");
     }
