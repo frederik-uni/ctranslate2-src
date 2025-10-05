@@ -14,6 +14,7 @@ use build_support::file_changes::watch_dir_recursively;
 use build_support::link::link;
 
 use build_support::native::cuda_root;
+use build_support::submodules;
 use build_support::{Os, export, link_libraries, native::build_native};
 
 #[cfg(not(target_os = "windows"))]
@@ -325,6 +326,7 @@ fn main() {
         if !p.exists() {
             download_helper(&url, Path::new("./"), false).unwrap();
         }
+        submodules::get_submodules_helper(&release);
         if !p.exists() {
             panic!("CTranslate2-{release} not found locally")
         }

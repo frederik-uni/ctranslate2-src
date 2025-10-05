@@ -13,6 +13,7 @@ pub mod download;
 pub mod file_changes;
 pub mod link;
 pub mod native;
+pub mod submodules;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Os {
