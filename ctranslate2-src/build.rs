@@ -10,14 +10,14 @@ use std::fs::read_dir;
 use std::path::PathBuf;
 use std::{env, path::Path};
 
-use build_support::download::download_helper;
-use build_support::file_changes::watch_dir_recursively;
-use build_support::link::link;
+use ctranslate2_src_build_support::download::download_helper;
+use ctranslate2_src_build_support::file_changes::watch_dir_recursively;
+use ctranslate2_src_build_support::link::link;
 
-use build_support::native::cuda_root;
-use build_support::windows_crt_patch::patch_cmake_runtime_flags;
-use build_support::{Os, export, link_libraries, native::build_native};
-use build_support::{link_dynamic_libraries, submodules};
+use ctranslate2_src_build_support::native::cuda_root;
+use ctranslate2_src_build_support::windows_crt_patch::patch_cmake_runtime_flags;
+use ctranslate2_src_build_support::{Os, export, link_libraries, native::build_native};
+use ctranslate2_src_build_support::{link_dynamic_libraries, submodules};
 
 #[cfg(not(target_os = "windows"))]
 const PATH_SEPARATOR: char = ':';

@@ -4,4 +4,4 @@ members = ["ctranslate2-src", "build-support"]
 default-members = ["ctranslate2-src"]
 
 [workspace.dependencies]
-build-support = { path = "build-support" }
+ctranslate2-src-build-support = { path = "build-support" }

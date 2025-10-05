@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 
 [build-dependencies]
-build-support.workspace = true
+ctranslate2-src-build-support.workspace = true
 cxx-build = "1.0"
 
 [features]
