@@ -220,6 +220,7 @@ pub fn main(
         vendor,
         crt_dynamic,
         export_vendor,
+        path,
     ): (
         Os,
         bool,
@@ -241,6 +242,7 @@ pub fn main(
         bool,
         bool,
         bool,
+        Option<&Path>,
     ),
 ) -> PathBuf {
     add_search_paths("LIBRARY_PATH");
@@ -273,34 +275,42 @@ pub fn main(
             Some(cuda_root()).expect("CUDA_TOOLKIT_ROOT_DIR is not specified"),
             shared,
         );
-        let release = std::env::var("CTRANSLATE2_RELEASE").unwrap_or_else(|_| "4.6.0".to_owned());
-        let url =
-            format!("https://github.com/OpenNMT/CTranslate2/archive/refs/tags/v{release}.tar.gz");
+        let p = if let Some(path) = path {
+            path.to_path_buf()
+        } else {
+            let release =
+                std::env::var("CTRANSLATE2_RELEASE").unwrap_or_else(|_| "4.6.0".to_owned());
+            let url = format!(
+                "https://github.com/OpenNMT/CTranslate2/archive/refs/tags/v{release}.tar.gz"
+            );
 
-        let p = format!("CTranslate2-{release}");
-        let p = get_dir().join(Path::new(&p));
-        let d = &get_dir();
-        if !p.exists() {
-            download_helper(&url, d, false).unwrap();
-        }
-        for module in submodules::get_submodules_helper(d, &release) {
-            if !module.exists()
-                || read_dir(module)
-                    .unwrap()
-                    .into_iter()
-                    .filter_map(|v| v.ok())
-                    .count()
-                    < 2
-            {
-                std::thread::sleep(std::time::Duration::from_millis(200));
+            let p = format!("CTranslate2-{release}");
+            let p = get_dir().join(Path::new(&p));
+            let d = &get_dir();
+            if !p.exists() {
+                download_helper(&url, d, false).unwrap();
             }
-        }
-        if !p.exists() {
-            panic!("CTranslate2-{release} not found locally")
-        }
-        if os == Os::Win {
-            patch_cmake_runtime_flags(p.join("CMakeLists.txt"), crt_dynamic).unwrap();
-        }
+            for module in submodules::get_submodules_helper(d, &release) {
+                if !module.exists()
+                    || read_dir(module)
+                        .unwrap()
+                        .into_iter()
+                        .filter_map(|v| v.ok())
+                        .count()
+                        < 2
+                {
+                    std::thread::sleep(std::time::Duration::from_millis(200));
+                }
+            }
+            if !p.exists() {
+                panic!("CTranslate2-{release} not found locally")
+            }
+            if os == Os::Win {
+                patch_cmake_runtime_flags(p.join("CMakeLists.txt"), crt_dynamic).unwrap();
+            }
+            p
+        };
+
         (
             build_native(
                 &p,
