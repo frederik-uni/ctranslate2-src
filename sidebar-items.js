@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["compute_type","device","tokenizer","translator","translator2"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BatchType","TranslatorError"],"struct":["TranslationOptions","TranslationResult","Translator","TranslatorConfig"]};
