@@ -443,4 +443,29 @@ fn main() {
     if cfg!(feature = "export-vendor") {
         export(&lib_path, &modules, &modules2);
     }
+
+    let mut builder = cc::Build::new();
+
+    builder
+        .cpp(true)
+        .file("cpp/translator_wrapper.cpp")
+        .include("include")
+        .include("../include")
+        .flag_if_supported("-std=c++17")
+        .flag_if_supported("-Wall")
+        .flag_if_supported("-Wextra")
+        .compile("translator_wrapper");
+
+    // Bindgen
+    let bindings = bindgen::Builder::default()
+        .header("include/translator_wrapper.h")
+        .clang_args(&["-x", "c++", "-std=c++17"])
+        .blocklist_item("_LIBCPP_.*")
+        .generate()
+        .expect("Unable to generate bindings");
+
+    let out_path = std::path::PathBuf::from(env::var("OUT_DIR").unwrap());
+    bindings
+        .write_to_file(out_path.join("translator_bindings.rs"))
+        .expect("Couldn't write bindings!");
 }

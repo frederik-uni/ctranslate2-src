@@ -1,5 +1,5 @@
 [package]
-name = "ctranslate2-src"
+name = "ctranslate2-sys"
 version = "0.1.3"
 edition = "2024"
 description = "Compiles CTranslate2 from source or uses pre-built binaries"
@@ -11,7 +11,8 @@ links = "ctranslate2"
 
 [build-dependencies]
 ctranslate2-src-build-support.workspace = true
-cxx-build = "1.0"
+bindgen = "0.72.1"
+cc = "1.2.40"
 
 [features]
 cuda = []

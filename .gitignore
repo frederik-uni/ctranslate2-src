@@ -1,2 +1,4 @@
 /target
-ctranslate2-src/CTranslate2-*
+ctranslate2-sys/CTranslate2-*
+/include
+/html
