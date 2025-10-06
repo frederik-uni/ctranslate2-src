@@ -2,6 +2,10 @@
 name = "ctranslate2"
 version = "2.0.0"
 edition = "2024"
+license = "MIT"
+description = "Rust bindings for OpenNMT/CTranslate2"
+documentation = "https://docs.rs/ctranslate2"
+repository = "https://github.com/frederik-uni/ctranslate2-src"
 
 [dependencies]
 ctranslate2-sys.workspace = true
