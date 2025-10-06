@@ -23,6 +23,11 @@ pub struct TranslationResult {
     inner: *mut CTranslationResult,
 }
 
+unsafe impl Send for TranslationResult {}
+unsafe impl Sync for TranslationResult {}
+unsafe impl Send for Translator {}
+unsafe impl Sync for Translator {}
+
 impl TranslationResult {
     pub fn score(&self) -> f32 {
         unsafe { translation_result_score(self.inner) }
