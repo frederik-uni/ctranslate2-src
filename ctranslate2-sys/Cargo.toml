@@ -1,6 +1,6 @@
 [package]
 name = "ctranslate2-sys"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "Compiles CTranslate2 from source or uses pre-built binaries"
 license = "MIT"
