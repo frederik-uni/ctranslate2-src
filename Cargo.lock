@@ -361,7 +361,7 @@ dependencies = [
 
 [[package]]
 name = "ctranslate2-sys"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "bindgen",
  "cc",

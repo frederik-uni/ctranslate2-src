@@ -370,8 +370,8 @@ fn main() {
         link_vendor(os, aarch64, shared);
         found = load_vendor(os, aarch64, shared);
     }
-    let lib_path = if let Some(found) = found {
-        found
+    let (lib_path, include_path) = if let Some(found) = found {
+        (found.clone(), found.join("include"))
     } else {
         add_search_paths("CMAKE_LIBRARY_PATH");
         link(
@@ -416,25 +416,28 @@ fn main() {
             patch_cmake_runtime_flags(p.join("CMakeLists.txt"), cfg!(feature = "crt-dynamic"))
                 .unwrap();
         }
-        build_native(
-            &p,
-            os,
-            cuda,
-            cudnn,
-            cuda_dynamic_loading,
-            aarch64,
-            mkl,
-            openblas,
-            ruy,
-            accelarate,
-            tensor_parallel,
-            msse4_1,
-            dnnl,
-            openmp_comp,
-            openmp_intel,
-            flash_attention,
-            cuda_small_binary,
-            shared,
+        (
+            build_native(
+                &p,
+                os,
+                cuda,
+                cudnn,
+                cuda_dynamic_loading,
+                aarch64,
+                mkl,
+                openblas,
+                ruy,
+                accelarate,
+                tensor_parallel,
+                msse4_1,
+                dnnl,
+                openmp_comp,
+                openmp_intel,
+                flash_attention,
+                cuda_small_binary,
+                shared,
+            ),
+            p.join("include"),
         )
     };
 
@@ -445,12 +448,11 @@ fn main() {
     }
 
     let mut builder = cc::Build::new();
-
     builder
         .cpp(true)
         .file("cpp/translator_wrapper.cpp")
         .include("include")
-        .include("../include")
+        .include(include_path)
         .flag_if_supported("-std=c++17")
         .flag_if_supported("-Wall")
         .flag_if_supported("-Wextra")
