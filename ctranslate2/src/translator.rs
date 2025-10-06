@@ -127,34 +127,35 @@ pub enum BatchType {
     Tokens,
 }
 
+#[derive(Clone)]
 pub struct TranslationOptions {
-    beam_size: usize,
-    patience: f32,
-    length_penalty: f32,
-    coverage_penalty: f32,
-    repetition_penalty: f32,
-    no_repeat_ngram_size: usize,
-    disable_unk: bool,
-    suppress_sequences: Vec<Vec<String>>,
-    prefix_bias_beta: f32,
-    return_end_token: bool,
-    max_input_length: usize,
-    max_decoding_length: usize,
-    min_decoding_length: usize,
-    sampling_topk: usize,
-    sampling_topp: f32,
-    sampling_temperature: f32,
-    use_vmap: bool,
-    num_hypotheses: usize,
-    return_scores: bool,
-    return_attention: bool,
-    return_logits_vocab: bool,
-    return_alternatives: bool,
-    min_alternative_expansion_prob: f32,
-    replace_unknowns: bool,
+    pub beam_size: usize,
+    pub patience: f32,
+    pub length_penalty: f32,
+    pub coverage_penalty: f32,
+    pub repetition_penalty: f32,
+    pub no_repeat_ngram_size: usize,
+    pub disable_unk: bool,
+    pub suppress_sequences: Vec<Vec<String>>,
+    pub prefix_bias_beta: f32,
+    pub return_end_token: bool,
+    pub max_input_length: usize,
+    pub max_decoding_length: usize,
+    pub min_decoding_length: usize,
+    pub sampling_topk: usize,
+    pub sampling_topp: f32,
+    pub sampling_temperature: f32,
+    pub use_vmap: bool,
+    pub num_hypotheses: usize,
+    pub return_scores: bool,
+    pub return_attention: bool,
+    pub return_logits_vocab: bool,
+    pub return_alternatives: bool,
+    pub min_alternative_expansion_prob: f32,
+    pub replace_unknowns: bool,
 
-    max_batch_size: usize,
-    batch_type: BatchType,
+    pub max_batch_size: usize,
+    pub batch_type: BatchType,
 }
 
 impl Default for TranslationOptions {
@@ -194,6 +195,59 @@ impl Default for TranslationOptions {
     }
 }
 
+fn to_c_translation_options(options: &TranslationOptions) -> CTranslationOptions {
+    CTranslationOptions {
+        prefix_bias_beta: options.prefix_bias_beta,
+        return_end_token: options.return_end_token,
+        beam_size: options.beam_size,
+        patience: options.patience,
+        length_penalty: options.length_penalty,
+        coverage_penalty: options.coverage_penalty,
+        repetition_penalty: options.repetition_penalty,
+        no_repeat_ngram_size: options.no_repeat_ngram_size,
+        disable_unk: if options.disable_unk { 1 } else { 0 },
+        max_input_length: options.max_input_length,
+        max_decoding_length: options.max_decoding_length,
+        min_decoding_length: options.min_decoding_length,
+        sampling_topk: options.sampling_topk,
+        sampling_topp: options.sampling_topp,
+        sampling_temperature: options.sampling_temperature,
+        use_vmap: if options.use_vmap { 1 } else { 0 },
+        num_hypotheses: options.num_hypotheses,
+        return_scores: if options.return_scores { 1 } else { 0 },
+        return_attention: if options.return_attention { 1 } else { 0 },
+        return_logits_vocab: if options.return_logits_vocab { 1 } else { 0 },
+        return_alternatives: if options.return_alternatives { 1 } else { 0 },
+        min_alternative_expansion_prob: options.min_alternative_expansion_prob,
+        replace_unknowns: if options.replace_unknowns { 1 } else { 0 },
+    }
+}
+
+fn prepare_string(tokens: &[Vec<String>]) -> Result<Vec<Vec<CString>>, TranslatorError> {
+    tokens
+        .iter()
+        .map(|sentence| {
+            sentence
+                .iter()
+                .map(|s| CString::new(s.as_str()).map_err(|e| TranslatorError::NulInPath(e)))
+                .collect()
+        })
+        .collect()
+}
+
+fn prepare_string_pts(c_sentences: &Vec<Vec<CString>>) -> Vec<*const *const c_char> {
+    let c_ptrs: Vec<Vec<*const c_char>> = c_sentences
+        .iter()
+        .map(|sentence| {
+            let mut s: Vec<*const c_char> = sentence.iter().map(|s| s.as_ptr()).collect();
+            s.push(ptr::null());
+            s
+        })
+        .collect();
+    let c_sentences_ptrs: Vec<*const *const c_char> = c_ptrs.iter().map(|s| s.as_ptr()).collect();
+    c_sentences_ptrs
+}
+
 impl Translator {
     pub fn new<P: AsRef<Path>>(
         model_path: P,
@@ -224,60 +278,53 @@ impl Translator {
         let non_null = NonNull::new(raw).ok_or(TranslatorError::CreationFailed)?;
         Ok(Translator { inner: non_null })
     }
+    pub fn translate_batch2(
+        &self,
+        tokens: &[Vec<String>],
+        prefixes: &[Vec<String>],
+        options: TranslationOptions,
+    ) -> Result<Vec<TranslationResult>, TranslatorError> {
+        let opt = to_c_translation_options(&options);
+        unsafe {
+            let c_sentences = prepare_string(tokens)?;
+            let c_sentences_ptrs = prepare_string_pts(&c_sentences);
+
+            let c_prefixes = prepare_string(prefixes)?;
+            let c_prefixes_ptrs = prepare_string_pts(&c_prefixes);
+
+            let num_sentences = c_sentences_ptrs.len();
+
+            let mut out_num_translations: usize = 0;
+
+            let results_ptr = ctranslate2_sys::translator_translate_batch_with_target_prefix(
+                self.inner.as_ptr(),
+                c_sentences_ptrs.as_ptr() as *mut *mut *const c_char,
+                c_prefixes_ptrs.as_ptr() as *mut *mut *const c_char,
+                num_sentences,
+                &opt,
+                options.max_batch_size,
+                options.batch_type as i32,
+                &mut out_num_translations,
+            );
+            let results = take_c_results(results_ptr, out_num_translations)
+                .into_iter()
+                .map(|v| TranslationResult { inner: v })
+                .collect::<Vec<_>>();
+
+            Ok(results)
+        }
+    }
 
     pub fn translate_batch(
         &self,
         tokens: &[Vec<String>],
         options: TranslationOptions,
     ) -> Result<Vec<TranslationResult>, TranslatorError> {
-        let opt = CTranslationOptions {
-            prefix_bias_beta: options.prefix_bias_beta,
-            return_end_token: options.return_end_token,
-            beam_size: options.beam_size,
-            patience: options.patience,
-            length_penalty: options.length_penalty,
-            coverage_penalty: options.coverage_penalty,
-            repetition_penalty: options.repetition_penalty,
-            no_repeat_ngram_size: options.no_repeat_ngram_size,
-            disable_unk: if options.disable_unk { 1 } else { 0 },
-            max_input_length: options.max_input_length,
-            max_decoding_length: options.max_decoding_length,
-            min_decoding_length: options.min_decoding_length,
-            sampling_topk: options.sampling_topk,
-            sampling_topp: options.sampling_topp,
-            sampling_temperature: options.sampling_temperature,
-            use_vmap: if options.use_vmap { 1 } else { 0 },
-            num_hypotheses: options.num_hypotheses,
-            return_scores: if options.return_scores { 1 } else { 0 },
-            return_attention: if options.return_attention { 1 } else { 0 },
-            return_logits_vocab: if options.return_logits_vocab { 1 } else { 0 },
-            return_alternatives: if options.return_alternatives { 1 } else { 0 },
-            min_alternative_expansion_prob: options.min_alternative_expansion_prob,
-            replace_unknowns: if options.replace_unknowns { 1 } else { 0 },
-        };
+        let opt = to_c_translation_options(&options);
         unsafe {
-            let c_sentences: Result<Vec<Vec<CString>>, TranslatorError> = tokens
-                .iter()
-                .map(|sentence| {
-                    sentence
-                        .iter()
-                        .map(|s| {
-                            CString::new(s.as_str()).map_err(|e| TranslatorError::NulInPath(e))
-                        })
-                        .collect()
-                })
-                .collect();
-            let c_sentences = c_sentences?;
-            let c_ptrs: Vec<Vec<*const c_char>> = c_sentences
-                .iter()
-                .map(|sentence| {
-                    let mut s: Vec<*const c_char> = sentence.iter().map(|s| s.as_ptr()).collect();
-                    s.push(ptr::null());
-                    s
-                })
-                .collect();
-            let c_sentences_ptrs: Vec<*const *const c_char> =
-                c_ptrs.iter().map(|s| s.as_ptr()).collect();
+            let c_sentences = prepare_string(tokens)?;
+            let c_sentences_ptrs = prepare_string_pts(&c_sentences);
+
             let num_sentences = c_sentences_ptrs.len();
 
             let mut out_num_translations: usize = 0;
