@@ -4,7 +4,7 @@ members = ["ctranslate2-sys", "build-support", "ctranslate2"]
 default-members = ["ctranslate2"]
 
 [workspace.dependencies]
-ctranslate2-src-build-support = { path = "build-support", version = "0.1.1" }
+ctranslate2-src-build-support = { path = "build-support", version = "0.2" }
 ctranslate2-sys = { path = "ctranslate2-sys", version = "0.1.5" }
 sentencepiece = "0.12.0"
 tokenizers = "0.22.1"

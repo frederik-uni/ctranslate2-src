@@ -154,8 +154,8 @@ CTranslationResult **translator_translate_batch(
     CTranslator *translator, const char ***source, size_t num_sentences,
     const CTranslationOptions *options, size_t max_batch_size, int batch_type,
     size_t *out_num_translations) {
-  if (!translator || !source || !max_batch_size || !out_num_translations ||
-      !num_sentences)
+  if (translator == nullptr || source == nullptr ||
+      out_num_translations == nullptr)
     return nullptr;
 
   std::vector<std::vector<std::string>> cpp_source =
@@ -189,8 +189,8 @@ CTranslationResult **translator_translate_batch_with_target_prefix(
     const CTranslationOptions *options, size_t max_batch_size,
 
     int batch_type, size_t *out_num_translations) {
-  if (!translator || !source || !max_batch_size || !out_num_translations ||
-      !num_sentences || !target_prefixes)
+  if (translator == nullptr || source == nullptr ||
+      out_num_translations == nullptr || target_prefixes == nullptr)
     return nullptr;
 
   std::vector<std::vector<std::string>> cpp_source =

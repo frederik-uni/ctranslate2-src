@@ -1,7 +1,8 @@
 use std::path::Path;
 
 use crate::{
-    Tokenizer, TranslationOptions, Translator, TranslatorConfig, translator::TranslatorError,
+    Tokenizer, TranslationOptions, Translator, TranslatorConfig,
+    tokenizer::rust_tokenizers::SentenceTokenizer, translator::TranslatorError,
 };
 
 pub struct Translator2<T: Tokenizer> {
@@ -63,9 +64,11 @@ impl<T: Tokenizer> Translator2<T> {
         U: AsRef<str>,
         V: AsRef<str>,
     {
-        let out = self
-            .t
-            .translate_batch(&encode_all(&self.tokenizer, sources)?, options)?;
+        let out = self.t.translate_batch2(
+            &encode_all(&self.tokenizer, sources)?,
+            target_prefixes,
+            options,
+        )?;
         let mut res = Vec::new();
         for (r, prefix) in out.into_iter().zip(target_prefixes) {
             let score = r.score();
@@ -81,4 +84,10 @@ impl<T: Tokenizer> Translator2<T> {
         }
         Ok(res)
     }
+}
+
+#[test]
+fn tessss() {
+    let t = Translator2::new(Path::new("/Users/frederik/code/rust/ctranslate2-src/ctranslate2/model/ja-en-base"), &Default::default(), SentenceTokenizer::new("/Users/frederik/code/rust/ctranslate2-src/ctranslate2/model/spm.nopretok/spm.en.nopretok.model")).unwrap();
+    t.translate_batch(&vec!["Hello World".to_owned()], Default::default());
 }

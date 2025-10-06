@@ -78,6 +78,7 @@ impl Drop for Translator {
 pub enum TranslatorError {
     NulInPath(NulError),
     CreationFailed,
+    TranslationFailed,
 }
 
 impl fmt::Display for TranslatorError {
@@ -87,6 +88,7 @@ impl fmt::Display for TranslatorError {
                 write!(f, "Invalid path (contains null byte): {}", err)
             }
             TranslatorError::CreationFailed => write!(f, "Failed to create the translator"),
+            TranslatorError::TranslationFailed => write!(f, "Translation failed"),
         }
     }
 }
@@ -97,6 +99,7 @@ impl std::error::Error for TranslatorError {
         match self {
             TranslatorError::NulInPath(err) => Some(err),
             TranslatorError::CreationFailed => None,
+            TranslatorError::TranslationFailed => None,
         }
     }
 }
@@ -228,13 +231,13 @@ fn to_c_translation_options(options: &TranslationOptions) -> CTranslationOptions
     }
 }
 
-fn prepare_string(tokens: &[Vec<String>]) -> Result<Vec<Vec<CString>>, TranslatorError> {
+fn prepare_string<U: AsRef<str>>(tokens: &[Vec<U>]) -> Result<Vec<Vec<CString>>, TranslatorError> {
     tokens
         .iter()
         .map(|sentence| {
             sentence
                 .iter()
-                .map(|s| CString::new(s.as_str()).map_err(|e| TranslatorError::NulInPath(e)))
+                .map(|s| CString::new(s.as_ref()).map_err(|e| TranslatorError::NulInPath(e)))
                 .collect()
         })
         .collect()
@@ -283,10 +286,10 @@ impl Translator {
         let non_null = NonNull::new(raw).ok_or(TranslatorError::CreationFailed)?;
         Ok(Translator { inner: non_null })
     }
-    pub fn translate_batch2(
+    pub fn translate_batch2<U: AsRef<str>, V: AsRef<str>>(
         &self,
-        tokens: &[Vec<String>],
-        prefixes: &[Vec<String>],
+        tokens: &[Vec<U>],
+        prefixes: &Vec<Vec<V>>,
         options: TranslationOptions,
     ) -> Result<Vec<TranslationResult>, TranslatorError> {
         let opt = to_c_translation_options(&options);
@@ -343,6 +346,10 @@ impl Translator {
                 options.batch_type as i32,
                 &mut out_num_translations,
             );
+            if results_ptr.is_null() {
+                return Err(TranslatorError::TranslationFailed);
+            }
+            panic!();
             let results = take_c_results(results_ptr, out_num_translations)
                 .into_iter()
                 .map(|v| TranslationResult { inner: v })

@@ -8,12 +8,14 @@ use flate2::Compression;
 use tar::Builder;
 use walkdir::WalkDir;
 
+mod a;
 pub mod dnnl;
 pub mod download;
 pub mod file_changes;
 pub mod native;
 pub mod submodules;
 pub mod windows_crt_patch;
+pub use a::main;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Os {
