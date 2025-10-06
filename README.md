@@ -1,7 +1,7 @@
 # CTranslate2-rs
 
 [![Latest version](https://img.shields.io/crates/v/ctranslate2.svg)](https://crates.io/crates/ctranslate2)
-[![docs.rs](https://img.shields.io/docsrs/ctranslate2)](https://docs.rs/ctranslate2)
+[![docs.rs](https://img.shields.io/docsrs/ctranslate2)](https://frederik-uni.github.io/ctranslate2-src/ctranslate2/)
 [![GitHub License](https://img.shields.io/github/license/frederik-uni/ctranslate2-src)](https://github.com/frederik-uni/ctranslate2-src/blob/master/LICENSE)
 
 This library provides Rust bindings for [OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2).
