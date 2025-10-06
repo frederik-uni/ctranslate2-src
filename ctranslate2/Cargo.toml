@@ -1,8 +1,9 @@
 [package]
 name = "ctranslate2"
-version = "2.0.0"
+version = "2.0.1"
 edition = "2024"
 license = "MIT"
+readme = "../README.md"
 description = "Rust bindings for OpenNMT/CTranslate2"
 documentation = "https://docs.rs/ctranslate2"
 repository = "https://github.com/frederik-uni/ctranslate2-src"

@@ -1,4 +1,20 @@
-# CTranslate2-SRC
+# CTranslate2-rs
+
+[![Latest version](https://img.shields.io/crates/v/ctranslate2.svg)](https://crates.io/crates/ctranslate2)
+[![docs.rs](https://img.shields.io/docsrs/ctranslate2)](https://docs.rs/ctranslate2)
+[![GitHub License](https://img.shields.io/github/license/frederik-uni/ctranslate2-src)](https://github.com/frederik-uni/ctranslate2-src/blob/master/LICENSE)
+
+This library provides Rust bindings for [OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2).
+
+## Usage
+
+Add this crate to your `Cargo.toml` with selecting the backends you want to use as the features:
+
+```toml
+[dependencies]
+ctranslate2 = { version = "2" }
+ctranslate2-sys = { version = "0.1.5", features = ["cuda", "cudnn"] }
+```
 
 ## Prerequisites
 
