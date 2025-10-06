@@ -59,7 +59,7 @@ pub fn link(
         println!("cargo:rustc-link-lib=framework=Accelerate");
     }
     if dnnl {
-        build_dnnl(!shared);
+        // build_dnnl(!shared);
     }
     if openmp_comp && !shared {
         println!("cargo:rustc-link-lib=gomp");

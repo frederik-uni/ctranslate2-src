@@ -25,6 +25,14 @@ pub fn build_native(
     cuda_small_binary: bool,
     shared: bool,
 ) -> PathBuf {
+    let mut include_paths: Vec<PathBuf> = env::var("CMAKE_INCLUDE_PATH")
+        .as_ref()
+        .map(|v| env::split_paths(v).collect())
+        .unwrap_or_default();
+    let mut library_paths: Vec<PathBuf> = env::var("CMAKE_LIBRARY_PATH")
+        .as_ref()
+        .map(|v| env::split_paths(v).collect())
+        .unwrap_or_default();
     let mut cmake = cmake::Config::new(path);
     cmake
         .define("BUILD_CLI", "OFF")
@@ -82,9 +90,22 @@ pub fn build_native(
 
     if mkl {
         cmake.define("WITH_MKL", "ON");
+        if let Ok(mklroot) = env::var("DEP_MKL_ROOT") {
+            cmake.env("MKLROOT", mklroot);
+        }
+        if let Ok(include_path) = env::var("DEP_MKL_INCLUDE_PATH") {
+            include_paths.push(PathBuf::from(include_path));
+        }
+        if let Ok(library_path) = env::var("DEP_MKL_LIBRARY_PATH") {
+            library_paths.push(PathBuf::from(library_path));
+        }
     }
     if openblas {
         cmake.define("WITH_OPENBLAS", "ON");
+        if os != Os::Win {
+            include_paths.push(PathBuf::from(env::var("DEP_OPENBLAS_INCLUDE").unwrap()));
+            library_paths.push(PathBuf::from(env::var("DEP_OPENBLAS_LIBRARY").unwrap()));
+        }
     }
     if ruy {
         cmake.define("WITH_RUY", "ON");
@@ -100,6 +121,8 @@ pub fn build_native(
     }
     if dnnl {
         cmake.define("WITH_DNNL", "ON");
+        include_paths.push(PathBuf::from(env::var("DEP_DNNL_INCLUDE_PATH").unwrap()));
+        library_paths.push(PathBuf::from(env::var("DEP_DNNL_LIBRARY_PATH").unwrap()));
     }
     if openmp_comp {
         cmake.define("OPENMP_RUNTIME", "COMP");
@@ -108,6 +131,20 @@ pub fn build_native(
     }
     if flash_attention {
         cmake.define("WITH_FLASH_ATTN", "ON");
+    }
+
+    if !include_paths.is_empty() {
+        cmake.env(
+            "CMAKE_INCLUDE_PATH",
+            env::join_paths(include_paths).unwrap(),
+        );
+    }
+
+    if !library_paths.is_empty() {
+        cmake.env(
+            "CMAKE_LIBRARY_PATH",
+            env::join_paths(library_paths).unwrap(),
+        );
     }
 
     let ctranslate2 = cmake.build();
