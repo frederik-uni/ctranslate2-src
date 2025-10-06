@@ -2,3 +2,4 @@
 ctranslate2-sys/CTranslate2-*
 /include
 /html
+.DS_Store
